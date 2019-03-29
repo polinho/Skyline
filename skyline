@@ -1,0 +1,164 @@
+package skyline;
+
+import java.lang.*;
+import java.util.*;
+import java.io.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class SkyLine {
+
+        
+	private MyPoint points[];
+	private List<MyPoint> skyLinePoints;
+        /*create a class in order to manage
+        better the points.there is the x and y as variables and a constructor
+        a function for equality(smaller condition for domination)and a function
+        for the printing points...
+        */
+	
+        private class MyPoint {
+		int x;
+		int y;
+
+		MyPoint(int x, int y) {
+			this.x = x;
+			this.y = y;
+		}
+
+		public boolean equals(MyPoint p) {
+			return (this.x == p.x && this.y == p.y);
+		}
+
+		public String toString() {
+			return this.x + " " + this.y;
+		}
+	}
+        /*compare via comparator.check the difference of x 
+        and if x are the same we check the y. return the correct difference.
+        */
+
+	private class SortPoints implements Comparator<MyPoint> {
+		public int compare(MyPoint a, MyPoint b) {
+			if (a.x == b.x)
+				return (a.y - b.y);
+			return (a.x - b.x);
+		}
+	}
+        
+        /*the function of reading the file.we check the first line to see 
+        how many points there are.then we read every line and put the points
+        in an array.Check if the file is valid or not.
+        */
+
+	private void readPointsFromFile(String filename) throws Exception {
+		MyPoint [] ps = null;
+		BufferedReader in = new BufferedReader(new FileReader(filename));
+		String line;
+		line = in.readLine(); // the first line is the number of points in file
+		int npoints = Integer.parseInt(line);
+		ps = new MyPoint[npoints];
+
+		int i = 0;
+		Pattern pattern = Pattern.compile("(\\d+)\\s+(\\d+)");//dont care about there is a tab or space or anything between the nums.
+		while ((line = in.readLine()) != null) {
+			Matcher m = pattern.matcher(line);
+			if (!m.find()) {
+				System.err.println("Malformed file");
+				throw new IOException("Malformed file");
+			}
+			ps[i] = new MyPoint(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)));
+			i++;
+		}
+		if (i != npoints)
+			throw new IOException("Bad Input file: read " + i + " points instead of " + npoints);
+		
+                in.close();
+		this.points = ps;
+	}
+        /*print points and sort points...
+        the next 2 functions.
+        */
+	public void printPoints() {
+		for (int i = 0; i < this.points.length; i++) {
+			System.out.println(this.points[i]);
+		}
+	}
+
+	private void sortPoints() {
+		Arrays.sort(this.points, new SortPoints());
+	}
+        /*the serious thing...
+        the function...we split the ax we choose until the points that
+        are there are less than 2.we check the condition.
+        we check also the final skyline points.
+        */
+
+	private static List<MyPoint> getSkyLine(MyPoint [] ps) {
+		int len = ps.length;
+
+		if (len < 2) {
+		
+			return Arrays.asList(ps); // just return whatever we have 
+		} else if (len == 2) {
+			if ((ps[0].x <= ps[1].x && ps[0].y <= ps[1].y) && !ps[0].equals(ps[1])) {
+				return Arrays.asList(ps[0]);
+			} else {
+				return Arrays.asList(ps); // both seem OK
+			}
+		} else { // len > 2; need to split
+			List<MyPoint> s1 = getSkyLine(Arrays.copyOfRange(ps, 0, ps.length/2));
+			List<MyPoint> s2 = getSkyLine(Arrays.copyOfRange(ps, ps.length/2, ps.length));
+			List<MyPoint> s = new ArrayList<MyPoint>(s1.size() + s2.size());
+			s.addAll(s1); // left side always wins
+			for (MyPoint p2: s2) {
+				boolean wins = true;
+				for (MyPoint p1: s1) {
+					if (p1.x <= p2.x && p1.y <= p2.y && !p2.equals(p1))
+						wins = false;
+				}
+				if (wins)
+					s.add(p2);
+			}
+			return s;
+		}
+	}
+
+	public void printSkyLinePoints() {
+		for (MyPoint p: this.skyLinePoints) {
+			System.out.println(p);
+		}
+	}
+
+	/*constructor,with an argument the filename.
+        we read the file we sort the points(and by x and by y),then we call the 
+        flashback function and we calculate the FINAL skyline points.
+        */
+        SkyLine(String filename) throws Exception {
+		
+		readPointsFromFile(filename);
+		this.sortPoints();
+		List<MyPoint> skyLinePoints = getSkyLine(this.points);
+		this.skyLinePoints = skyLinePoints;
+	}
+
+	//and the main...
+        //to run from cmd just write java -jar SkyLine.jar input**** WITHOUT BRACKETS
+        public static void main(String args[]){
+            
+            
+            if(args.length != 0){
+                System.out.println("THE POINTS ARE...");
+                
+                }
+            try {
+                
+                SkyLine s = new SkyLine(args[0]);
+                s.printSkyLinePoints();
+            } catch (Exception ex) {
+                ex.printStackTrace(System.err);
+            }
+        }
+}
